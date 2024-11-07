@@ -50,9 +50,15 @@ logger.critical("Critical error!")
 You can use markup tags to style your log messages:
 
 ```python
-logger.info("[bold red]Alert![/bold red] System temperature high")
-logger.debug("[blue]Processing[/blue] incoming request")
+logger.info("Here are rich text markup examples:")
+logger.debug(" - This is a debug message which most likely won't be seen")
+logger.info(" - We are hiring. Visit our [link=https://map4.jp]website[/link]!")
+logger.warning(" - :warning-emoji: We are going to have a problem")
+logger.error(" - [bold red]ALERT![/bold red] Something happened")
+logger.critical(" - :fire: :boom: :scream: :fire: :boom: :scream:")
 ```
+
+![!\[example rich markup\](images/example-rich-markup.png)](images/example-text-markup.png)
 
 You can find available markup styles in the [rich docs](https://rich.readthedocs.io/en/stable/markup.html).
 
@@ -63,7 +69,7 @@ The logger supports standard Python log levels:
 - CRITICAL/FATAL
 - ERROR
 - WARNING/WARN
-- INFO
+- INFO (Default)
 - DEBUG
 - NOTSET
 
@@ -72,6 +78,7 @@ Set the log level during initialization:
 ```python
 logger = Logger(log_level="DEBUG")
 # or
+import logging
 logger = Logger(log_level=logging.DEBUG)
 ```
 
@@ -84,22 +91,6 @@ logger.info("User logged in", user_id="123", ip="192.168.1.1")
 logger.error("Database connection failed",
              retry_count=3,
              database="users")
-```
-
-## Output Format
-
-The logger output includes:
-
-1. Timestamp (dim cyan)
-2. Log Level (color-coded)
-3. Event Message (white)
-4. Additional Context (key=cyan, value=magenta)
-
-Example output:
-
-```plain
-2024-01-01 12:00:00 INFO  Starting application
-2024-01-01 12:00:01 ERROR Database connection failed retry_count=3 database=users
 ```
 
 ## Automatic Highlighting
@@ -115,23 +106,22 @@ The logger automatically highlights various patterns in your log messages:
 - Paths: `/usr/local/bin`
 - URLs: `https://example.com`
 
-## Advanced Configuration
+```python
+logger.info("The following texts are automatically highlighted:")
+logger.info(" - XML/HTML: `<tag>content</tag>`")
+logger.info(" - IP addresses: `192.168.1.1`, `2001:db8::1`")
+logger.info(" - MAC addresses: `00:1B:44:11:3A:B7`")
+logger.info(" - UUIDs: `123e4567-e89b-12d3-a456-426614174000`")
+logger.info(" - Python literals: `True`, `False`, `None`")
+logger.info(" - Numbers: `42`, `3.14`, `1+2j`")
+logger.info(" - Paths: `/usr/local/bin`")
+logger.info(" - URLs: `https://map4.jp`")
+```
 
-The logger uses `structlog` for configuration and can be customized further by modifying the processor chain or column formatters in the initialization.
-
-## Notes
-
-- All log methods support both positional and keyword arguments
-- The `warn` method is an alias for `warning`
-- The `fatal` method is an alias for `critical`
-- Rich text markup can be nested: `[bold]Bold[italic] bold and italic[/bold] italic[/italic]`
+![!\[example auto highlighting\](images/example-auto-highlighting.png)](images/example-auto-highlighting.png)
 
 ## Dependencies
 
-- Python 3.7+
+- Python 3.8+
 - `structlog`
 - `rich`
-
-## License
-
-[Insert your license information here]

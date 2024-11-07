@@ -1,0 +1,28 @@
+[project]
+name = "richlogger"
+version = "0.1.0"
+description = "Rich-formatted structured logging for Python with automatic syntax highlighting and beautiful console output."
+authors = [
+    { name = "urasakikeisuke", email = "urasakikeisuke@gmail.com" }
+]
+dependencies = [
+    "structlog>24.1.0,<25.0.0",
+    "rich>=4.0.0,<14.0.0",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+license = { text = "MIT" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/richlogger"]
