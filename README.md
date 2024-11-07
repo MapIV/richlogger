@@ -24,7 +24,7 @@ A powerful Python logging utility that combines structured logging with rich tex
 ## Installation
 
 ```bash
-pip install richlogger
+pip install git+https://github.com/MapIV/richlogger
 ```
 
 ## Usage
