@@ -36,9 +36,9 @@ class Logger:
 
         return s + " " * (missing if missing > 0 else 0)
 
-    def __init__(self, log_level: int | AcceptableLevel = logging.INFO) -> None:
+    def __init__(self, log_level: int | AcceptableLevel = logging.INFO, console: Console = Console()) -> None:
         self.logger: structlog.stdlib.BoundLogger = structlog.get_logger()
-        self.console = Console()
+        self.console = console
 
         class LogLevelColumnFormatter:
             level_styles: dict[str, str] | None
