@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import dataclass
 from io import StringIO
-from typing import Callable, Literal
+from typing import Callable, Literal, TextIO
 
 import structlog
 from rich.console import Console
@@ -36,7 +37,7 @@ class Logger:
 
         return s + " " * (missing if missing > 0 else 0)
 
-    def __init__(self, log_level: int | AcceptableLevel = logging.INFO, console: Console = Console()) -> None:
+    def __init__(self, log_level: int | AcceptableLevel = logging.INFO, console: Console = Console(), file: TextIO = sys.stdout) -> None:
         self.logger: structlog.stdlib.BoundLogger = structlog.get_logger()
         self.console = console
 
@@ -189,7 +190,7 @@ class Logger:
             ],
             wrapper_class=structlog.make_filtering_bound_logger(_checkLevel(log_level)),
             context_class=dict,
-            logger_factory=structlog.PrintLoggerFactory(),
+            logger_factory=structlog.PrintLoggerFactory(file),
             cache_logger_on_first_use=True,
         )
 
