@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import logging
-import logging.config
 import sys
 from dataclasses import dataclass
 from io import StringIO
-from os import PathLike
 from typing import Callable, Literal, TextIO
 
 import structlog
@@ -29,7 +27,7 @@ def _checkLevel(level: int | AcceptableLevel) -> int:
     else:
         raise TypeError(f"Level not an integer or a valid string: {level}")
 
-    return logging._levelToName[rv]
+    return rv
 
 
 class Logger:
@@ -39,15 +37,9 @@ class Logger:
 
         return s + " " * (missing if missing > 0 else 0)
 
-    def __init__(
-        self,
-        log_level: int | AcceptableLevel = logging.INFO,
-        console: Console = Console(),
-        stream: TextIO = sys.stdout,
-        path: PathLike | None = None,
-    ) -> None:
-        self.console = console
+    def __init__(self, log_level: int | AcceptableLevel = logging.INFO, console: Console = Console(), file: TextIO = sys.stdout) -> None:
         self.logger: structlog.stdlib.BoundLogger = structlog.get_logger()
+        self.console = console
 
         class LogLevelColumnFormatter:
             level_styles: dict[str, str] | None
@@ -141,132 +133,66 @@ class Logger:
 
                 return sio.getvalue()
 
-        logging_pre_chain = [
-            structlog.contextvars.merge_contextvars,
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            structlog.stdlib.add_log_level,
-        ]
-
-        structlog_processors = [
-            structlog.contextvars.merge_contextvars,
-            structlog.stdlib.filter_by_level,
-            structlog.stdlib.add_log_level,
-            structlog.processors.UnicodeDecoder(),
-            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ]
-
-        console_formatter = {
-            "()": structlog.stdlib.ProcessorFormatter,
-            "processor": structlog.dev.ConsoleRenderer(
-                columns=[
-                    structlog.dev.Column(
-                        "timestamp",
-                        structlog.dev.KeyValueColumnFormatter(
-                            key_style=None,
-                            value_style="\033[2;36m",  # DIM CYAN,
-                            reset_style="\033[0m",
-                            value_repr=str,
+        structlog.configure(
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.processors.add_log_level,
+                structlog.processors.StackInfoRenderer(),
+                structlog.dev.set_exc_info,
+                structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+                structlog.dev.ConsoleRenderer(
+                    columns=[
+                        structlog.dev.Column(
+                            "timestamp",
+                            structlog.dev.KeyValueColumnFormatter(
+                                key_style=None,
+                                value_style="\033[2;36m",
+                                reset_style="\033[0m",
+                                value_repr=str,
+                            ),
                         ),
-                    ),
-                    structlog.dev.Column(
-                        "level",
-                        LogLevelColumnFormatter(
-                            level_styles={
-                                "critical": "\033[7;1;31m",
-                                "exception": "\033[1;31m",
-                                "error": "\033[1;31m",
-                                "warn": "\033[1;33m",
-                                "warning": "\033[1;33m",
-                                "info": "\033[34m",
-                                "debug": "\033[2;34m",
-                                "notset": "\033[2m",
-                            },
-                            reset_style="\033[0m",
+                        structlog.dev.Column(
+                            "level",
+                            LogLevelColumnFormatter(
+                                level_styles={
+                                    "critical": "\033[7;1;31m",
+                                    "exception": "\033[1;31m",
+                                    "error": "\033[1;31m",
+                                    "warn": "\033[1;33m",
+                                    "warning": "\033[1;33m",
+                                    "info": "\033[34m",
+                                    "debug": "\033[2;34m",
+                                    "notset": "\033[2m",
+                                },
+                                reset_style="\033[0m",
+                            ),
                         ),
-                    ),
-                    structlog.dev.Column(
-                        "event",
-                        RichKeyValueColumnFormatter(
-                            key_style=None,
-                            value_style="\033[37m",  # WHITE
-                            reset_style="\033[0m",
-                            value_repr=str,
+                        structlog.dev.Column(
+                            "event",
+                            RichKeyValueColumnFormatter(
+                                key_style=None,
+                                value_style="\033[37m",
+                                reset_style="\033[0m",
+                                value_repr=str,
+                            ),
                         ),
-                    ),
-                    structlog.dev.Column(
-                        "",
-                        structlog.dev.KeyValueColumnFormatter(
-                            key_style="\033[36m",  # CYAN
-                            value_style="\033[35m",  # MAGENTA
-                            reset_style="\033[0m",
-                            value_repr=str,
+                        structlog.dev.Column(
+                            "",
+                            structlog.dev.KeyValueColumnFormatter(
+                                key_style="\033[36m",
+                                value_style="\033[35m",
+                                reset_style="\033[0m",
+                                value_repr=str,
+                            ),
                         ),
-                    ),
-                ]
-            ),
-            "foreign_pre_chain": logging_pre_chain,
-            "keep_exc_info": True,
-            "keep_stack_info": True,
-        }
-
-        file_formatter = {
-            "()": structlog.stdlib.ProcessorFormatter,
-            "processor": structlog.processors.JSONRenderer(),
-            "foreign_pre_chain": logging_pre_chain,
-            "keep_exc_info": True,
-            "keep_stack_info": True,
-        }
-
-        formatters = {"console": console_formatter}
-        if path is not None:
-            formatters["file"] = file_formatter
-
-        console_handler = {
-            "level": "NOTSET",
-            "class": "logging.StreamHandler",
-            "formatter": "console",
-            "stream": "ext://sys.stdout" if stream is sys.stdout else "ext://sys.stderr",
-        }
-
-        file_handler = {
-            "level": "NOTSET",
-            "class": "logging.FileHandler",
-            "filename": str(path),
-            "formatter": "file",
-            "encoding": "utf-8",
-        }
-
-        handlers = {"console": console_handler}
-        if path is not None:
-            handlers["file"] = file_handler
-
-        logging.config.dictConfig(
-            {
-                "version": 1,
-                "disable_existing_loggers": False,
-                "formatters": formatters,
-                "handlers": handlers,
-                "loggers": {
-                    "": {
-                        "handlers": ["console"]
-                        if path is None
-                        else ["console", "file"],
-                        "level": _checkLevel(log_level),
-                        "propagate": True,
-                    },
-                },
-            }
-        )
-
-        structlog.configure_once(
-            processors=structlog_processors,
+                    ]
+                ),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(_checkLevel(log_level)),
             context_class=dict,
-            logger_factory=structlog.stdlib.LoggerFactory(),
-            wrapper_class=structlog.stdlib.BoundLogger,
+            logger_factory=structlog.PrintLoggerFactory(file),
             cache_logger_on_first_use=True,
         )
-
 
     def bind(self, **kwargs: dict[str, object]) -> Logger:
         self.logger = self.logger.bind(**kwargs)
